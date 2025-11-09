@@ -2,14 +2,14 @@
   "name": "A1111 Metadata Embedder",
   "short_name": "A1111 Meta",
   "description": "Add AUTOMATIC1111 metadata to images",
-  "start_url": "/a1111-metadata-pwa/a1111-metadata-app.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#667eea",
   "theme_color": "#667eea",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "icon.png",
+      "src": "./icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
