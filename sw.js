@@ -1,7 +1,7 @@
 const CACHE_NAME = 'a1111-metadata-v1';
 const urlsToCache = [
-  '/a1111-metadata-app.html',
-  '/manifest.json'
+  '/a1111-metadata-pwa/a1111-metadata-app.html',
+  '/a1111-metadata-pwa/manifest.json'
 ];
 
 self.addEventListener('install', event => {
