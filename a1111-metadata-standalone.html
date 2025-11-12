@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A1111 Metadata Embedder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.8em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+
+        .drop-zone {
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px dashed #667eea;
+            border-radius: 20px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .drop-zone.dragover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .drop-zone-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .drop-zone-text {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .drop-zone-subtext {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .metadata-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: #333;
+            display: none;
+        }
+
+        .metadata-panel.visible {
+            display: block;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            resize: vertical;
+            min-height: 150px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 140px;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .preview {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+            color: #333;
+        }
+
+        .preview.visible {
+            display: block;
+        }
+
+        .preview img {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .preview-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .drop-zone {
+                padding: 40px 15px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 A1111 Metadata Embedder</h1>
+        <p class="subtitle">Add AUTOMATIC1111 metadata to your images</p>
+
+        <div class="drop-zone" id="dropZone">
+            <div class="drop-zone-icon">📸</div>
+            <div class="drop-zone-text">Drop an image here</div>
+            <div class="drop-zone-subtext">or click to select</div>
+        </div>
+
+        <input type="file" id="fileInput" class="file-input" accept="image/*">
+
+        <div class="preview" id="preview">
+            <img id="previewImage" alt="Preview">
+            <div class="preview-info" id="previewInfo"></div>
+        </div>
+
+        <div class="metadata-panel" id="metadataPanel">
+            <label for="metadataText">A1111 Parameters (editable):</label>
+            <textarea id="metadataText" placeholder="Metadata will be auto-generated when you load an image..."></textarea>
+
+            <div class="button-group">
+                <button class="btn-primary" id="generateBtn">Generate Generic</button>
+                <button class="btn-primary" id="embedBtn">Embed & Download</button>
+                <button class="btn-secondary" id="clearBtn">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let currentFile = null;
+        let currentImage = null;
+        let imageWidth = 0;
+        let imageHeight = 0;
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const previewImage = document.getElementById('previewImage');
+        const previewInfo = document.getElementById('previewInfo');
+        const metadataPanel = document.getElementById('metadataPanel');
+        const metadataText = document.getElementById('metadataText');
+        const generateBtn = document.getElementById('generateBtn');
+        const embedBtn = document.getElementById('embedBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const toast = document.getElementById('toast');
+
+        // Drop zone events
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showToast('Please select an image file');
+                return;
+            }
+
+            currentFile = file;
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                currentImage = e.target.result;
+                const img = new Image();
+
+                img.onload = () => {
+                    imageWidth = img.width;
+                    imageHeight = img.height;
+
+                    previewImage.src = currentImage;
+                    previewInfo.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB) - ${imageWidth}x${imageHeight}`;
+                    preview.classList.add('visible');
+                    metadataPanel.classList.add('visible');
+
+                    // Auto-generate metadata when image is loaded
+                    generateGenericMetadata();
+                };
+
+                img.src = currentImage;
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        function generateGenericMetadata() {
+            const seed = Math.floor(Math.random() * 2147483647); // 32-bit integer
+
+            const metadata = `high quality, detailed, professional photography
+Negative prompt: low quality, blurry, distorted, amateur, watermark, text
+Steps: 25, Sampler: DPM++ 2M Karras, CFG scale: 7.5, Seed: ${seed}, Size: ${imageWidth}x${imageHeight}, Model: sdxl_base_v1.0, Clip skip: 2`;
+
+            metadataText.value = metadata;
+        }
+
+        generateBtn.addEventListener('click', () => {
+            if (!currentFile) {
+                showToast('Please load an image first');
+                return;
+            }
+            generateGenericMetadata();
+            showToast('✓ New metadata generated!');
+        });
+
+        embedBtn.addEventListener('click', async () => {
+            if (!currentFile || !metadataText.value.trim()) {
+                showToast('Please add metadata text');
+                return;
+            }
+
+            try {
+                embedBtn.disabled = true;
+                embedBtn.textContent = 'Processing...';
+
+                const pngWithMetadata = await embedMetadata(currentFile, metadataText.value);
+                downloadFile(pngWithMetadata, currentFile.name.replace(/\.[^/.]+$/, "") + '_metadata.png');
+
+                showToast('✓ Image downloaded with metadata!');
+            } catch (error) {
+                showToast('Error: ' + error.message);
+                console.error(error);
+            } finally {
+                embedBtn.disabled = false;
+                embedBtn.textContent = 'Embed & Download';
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            currentFile = null;
+            currentImage = null;
+            imageWidth = 0;
+            imageHeight = 0;
+            fileInput.value = '';
+            metadataText.value = '';
+            preview.classList.remove('visible');
+            metadataPanel.classList.remove('visible');
+        });
+
+        async function embedMetadata(file, metadata) {
+            // Read the original image
+            const arrayBuffer = await file.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+
+            // Convert to PNG if not already
+            if (!file.type.includes('png')) {
+                const img = new Image();
+                const blob = new Blob([uint8Array], { type: file.type });
+                const url = URL.createObjectURL(blob);
+
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = url;
+                });
+
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+
+                URL.revokeObjectURL(url);
+
+                const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                const pngArrayBuffer = await pngBlob.arrayBuffer();
+                return addPNGMetadata(new Uint8Array(pngArrayBuffer), metadata);
+            }
+
+            return addPNGMetadata(uint8Array, metadata);
+        }
+
+        function addPNGMetadata(pngData, metadata) {
+            // PNG signature
+            const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
+
+            // Verify PNG signature
+            for (let i = 0; i < 8; i++) {
+                if (pngData[i] !== PNG_SIGNATURE[i]) {
+                    throw new Error('Not a valid PNG file');
+                }
+            }
+
+            // Create tEXt chunk with "parameters" keyword
+            const keyword = 'parameters';
+            const keywordBytes = new TextEncoder().encode(keyword);
+            const metadataBytes = new TextEncoder().encode(metadata);
+
+            // tEXt chunk: keyword + null byte + text
+            const chunkData = new Uint8Array(keywordBytes.length + 1 + metadataBytes.length);
+            chunkData.set(keywordBytes, 0);
+            chunkData[keywordBytes.length] = 0; // null separator
+            chunkData.set(metadataBytes, keywordBytes.length + 1);
+
+            // Create chunk with length and type
+            const chunkLength = chunkData.length;
+            const chunk = new Uint8Array(12 + chunkLength);
+
+            // Length (4 bytes, big-endian)
+            chunk[0] = (chunkLength >>> 24) & 0xFF;
+            chunk[1] = (chunkLength >>> 16) & 0xFF;
+            chunk[2] = (chunkLength >>> 8) & 0xFF;
+            chunk[3] = chunkLength & 0xFF;
+
+            // Type "tEXt" (4 bytes)
+            chunk[4] = 116; // 't'
+            chunk[5] = 69;  // 'E'
+            chunk[6] = 88;  // 'X'
+            chunk[7] = 116; // 't'
+
+            // Data
+            chunk.set(chunkData, 8);
+
+            // CRC (4 bytes)
+            const crc = calculateCRC(chunk.slice(4, 8 + chunkLength));
+            chunk[8 + chunkLength] = (crc >>> 24) & 0xFF;
+            chunk[9 + chunkLength] = (crc >>> 16) & 0xFF;
+            chunk[10 + chunkLength] = (crc >>> 8) & 0xFF;
+            chunk[11 + chunkLength] = crc & 0xFF;
+
+            // Find IEND chunk position (last chunk)
+            let iendPos = pngData.length - 12;
+            while (iendPos > 0) {
+                if (pngData[iendPos + 4] === 73 && // 'I'
+                    pngData[iendPos + 5] === 69 && // 'E'
+                    pngData[iendPos + 6] === 78 && // 'N'
+                    pngData[iendPos + 7] === 68) { // 'D'
+                    break;
+                }
+                iendPos--;
+            }
+
+            // Insert tEXt chunk before IEND
+            const result = new Uint8Array(pngData.length + chunk.length);
+            result.set(pngData.slice(0, iendPos), 0);
+            result.set(chunk, iendPos);
+            result.set(pngData.slice(iendPos), iendPos + chunk.length);
+
+            return result;
+        }
+
+        function calculateCRC(data) {
+            let crc = 0xFFFFFFFF;
+
+            for (let i = 0; i < data.length; i++) {
+                crc ^= data[i];
+                for (let j = 0; j < 8; j++) {
+                    if (crc & 1) {
+                        crc = (crc >>> 1) ^ 0xEDB88320;
+                    } else {
+                        crc = crc >>> 1;
+                    }
+                }
+            }
+
+            return (crc ^ 0xFFFFFFFF) >>> 0;
+        }
+
+        function downloadFile(data, filename) {
+            const blob = new Blob([data], { type: 'image/png' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
